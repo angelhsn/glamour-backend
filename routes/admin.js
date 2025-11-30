@@ -2,7 +2,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import Joi from "joi";
 import Admin from "../models/Admin.js";
-import User from "../models/User.js";
+import User from "../models/user.js";
 import MUA from "../models/MUA.js";
 import Booking from "../models/Booking.js";
 import Review from "../models/Review.js";

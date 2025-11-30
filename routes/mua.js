@@ -1,6 +1,6 @@
 import express from 'express';
 import MUA from '../models/MUA.js';
-import User from '../models/User.js'; // Import User model for reference
+import User from '../models/user.js'; // Import User model for reference
 import { authenticateToken } from './auth.js';
 
 const router = express.Router();
