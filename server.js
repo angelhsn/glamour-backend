@@ -142,11 +142,11 @@ app.use((req, res) => {
     availableRoutes: [
       "GET /",
       "GET /api/health", 
-      "POST /api/auth/register", 
-      "POST /api/auth/login", 
-      "POST /api/payment/create",
-      "POST /api/admin/login",
-      "POST /api/admin/register"
+      "GET /api/auth/register", 
+      "GET /api/auth/login", 
+      "GET /api/payment/create",
+      "GET /api/admin/login",
+      "GET /api/admin/register"
     ]
   });
 });
