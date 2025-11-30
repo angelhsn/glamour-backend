@@ -1,12 +1,12 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 import Joi from "joi";
-import Admin from "../models/Admin.js";
+import Admin from "../models/admin.js";
 import User from "../models/user.js";
-import MUA from "../models/MUA.js";
-import Booking from "../models/Booking.js";
-import Review from "../models/Review.js";
-import LoginLog from "../models/LoginLog.js";
+import MUA from "../models/mua.js";
+import Booking from "../models/booking.js";
+import Review from "../models/review.js";
+import LoginLog from "../models/loginLog.js";
 
 const router = express.Router();
 

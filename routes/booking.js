@@ -1,6 +1,6 @@
 import express from 'express';
-import Booking from '../models/Booking.js';
-import MUA from '../models/MUA.js'; // Using MUA model instead of User for MUA profiles
+import Booking from '../models/booking.js';
+import MUA from '../models/mua.js'; // Using MUA model instead of User for MUA profiles
 import { authenticateToken } from './auth.js';
 
 const router = express.Router();

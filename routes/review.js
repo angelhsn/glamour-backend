@@ -1,7 +1,7 @@
 import express from 'express';
-import Review from '../models/Review.js';
-import Booking from '../models/Booking.js';
-import MUA from '../models/MUA.js';
+import Review from '../models/review.js';
+import Booking from '../models/booking.js';
+import MUA from '../models/mua.js';
 import { authenticateToken } from './auth.js';
 
 const router = express.Router();

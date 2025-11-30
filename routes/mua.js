@@ -1,5 +1,5 @@
 import express from 'express';
-import MUA from '../models/MUA.js';
+import MUA from '../models/mua.js';
 import User from '../models/user.js'; // Import User model for reference
 import { authenticateToken } from './auth.js';
 
