@@ -21,7 +21,8 @@ const corsOptions = {
   origin: [
     "http://localhost:5173", // Default Vite development server
     "http://localhost:3000", // Common React development server
-    "http://localhost:8080", // Your frontend development server
+    "http://localhost:8080", 
+    "https://glamour-frontend-production.up.railway.app",// Your frontend development server
     process.env.FRONTEND_URL, // Allow environment variable to override
   ].filter(Boolean), // Remove any undefined values
   credentials: true,
@@ -34,11 +35,18 @@ app.use(express.json());
 // MongoDB Connection
 const connectDB = async () => {
   try {
-    const mongoURI = process.env.MONGODB_URI || 'mongodb+srv://firdausiangel7_db_user:Glamour2025db@cluster0.hnaosra.mongodb.net/glamour?retryWrites=true&w=majority';
-    await mongoose.connect(mongoURI);
-    console.log('✅ MongoDB connected successfully');
+    const mongoURI = process.env.MONGODB_URI 
+      || "mongodb+srv://firdausiangel7_db_user:Glamour2025db@cluster0.hnaosra.mongodb.net/glamour?retryWrites=true&w=majority&tls=true";
+
+    await mongoose.connect(mongoURI, {
+      ssl: true,
+      tlsAllowInvalidCertificates: false,
+      serverSelectionTimeoutMS: 10000,
+    });
+
+    console.log("✅ MongoDB connected successfully");
   } catch (error) {
-    console.error('❌ MongoDB connection error:', error);
+    console.error("❌ MongoDB connection error:", error.message);
     process.exit(1);
   }
 };
