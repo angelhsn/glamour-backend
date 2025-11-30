@@ -1,0 +1,6 @@
+node_modules/
+frontend/
+dump/
+glamour-chic-hub/
+.env
+docker-compose.yml
