@@ -16,7 +16,7 @@ import adminRoutes from "./routes/admin.js";
 
 const app = express();
 
-// CORS Configuration - Updated to include Railway URL and handle production environment
+// CORS Configuration - Updated to include all necessary origins and handle production environment
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
@@ -26,20 +26,22 @@ const corsOptions = {
       "http://localhost:5173", // Vite development server
       "http://localhost:3000", // Common React development server
       "http://localhost:8080",
-      "https://glamour-frontend-production.up.railway.app", // Production frontend
+      "https://glamour-backend-production.up.railway.app", // Production frontend (legacy)
+      "https://glamour-frontend-azure.vercel.app", // Current production frontend
       "https://glamour-backend-production.up.railway.app",  // Production backend
       process.env.FRONTEND_URL, // Environment variable for frontend
     ].filter(Boolean); // Remove any undefined values
 
-    const isAllowed = allowedOrigins.includes(origin) || 
-                     origin?.includes('localhost') || 
-                     origin?.includes('railway.app');
-    
+    const isAllowed = allowedOrigins.includes(origin) ||
+                     origin?.includes('localhost') ||
+                     origin?.includes('railway.app') ||
+                     origin?.includes('vercel.app');
+
     callback(null, isAllowed);
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "X-Requested-With", "X-HTTP-Method-Override"],
   optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
 };
 
@@ -47,19 +49,27 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Handle preflight requests for all routes
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin);
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, X-HTTP-Method-Override');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.sendStatus(200);
+});
+
 // MongoDB Connection
 const connectDB = async () => {
   try {
-    const mongoURI = process.env.MONGODB_URI 
-      || "mongodb+srv://firdausiangel7_db_user:Glamour2025db@cluster0.hnaosra.mongodb.net/glamour?retryWrites=true&w=majority&tls=true";
+    const mongoURI = process.env.MONGODB_URI
+      || "mongodb+srv://firdausiangel7_db_user:Glamour2025db@cluster0.hnaosra.mongodb.net/glamour?retryWrites=true&w=majority";
 
     await mongoose.connect(mongoURI, {
-      ssl: true,
-      tlsAllowInvalidCertificates: false,
-      serverSelectionTimeoutMS: 15000, // Increased timeout for production
+      serverSelectionTimeoutMS: 30000, // Increased timeout for production
       maxPoolSize: 10, // Maintain up to 10 socket connections
-      serverSelectionTimeoutMS: 5000, // Keep default timeout
       socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+      bufferCommands: false, // Disable mongoose buffering
+      bufferMaxEntries: 0, // Disable mongoose buffering
     });
 
     console.log("✅ MongoDB connected successfully");
@@ -148,13 +158,26 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// Routes with proper API structure
+// Routes with proper API structure - explicitly register all routes
 app.use("/api/auth", authRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/mua", muaRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/admin", adminRoutes);
+
+// Explicitly handle any missing auth routes to prevent 404s
+app.all('/api/auth/*', (req, res) => {
+  res.status(404).json({
+    message: `Route ${req.originalUrl} not found`,
+    method: req.method,
+    available_auth_routes: [
+      "POST /api/auth/login",
+      "POST /api/auth/register",
+      "GET /api/auth/me (requires auth)"
+    ]
+  });
+});
 
 // Health check route
 app.get("/api/health", (req, res) => {
@@ -166,45 +189,82 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// Additional endpoints as requested (for GET requests to existing POST endpoints)
-// This provides fallback GET endpoints for testing purposes
+// Error responses for when users try to use GET instead of POST for auth routes
 app.get('/api/auth/login', (req, res) => {
-  res.status(405).json({ 
-    message: "Use POST /api/auth/login for authentication",
+  res.status(405).json({
+    message: "Method Not Allowed. Use POST /api/auth/login for authentication",
+    method_used: req.method,
+    correct_method: "POST",
     available: ["POST /api/auth/login", "POST /api/auth/register"]
   });
 });
 
+app.get('/api/auth/register', (req, res) => {
+  res.status(405).json({
+    message: "Method Not Allowed. Use POST /api/auth/register for user registration",
+    method_used: req.method,
+    correct_method: "POST",
+    available: ["POST /api/auth/register", "POST /api/auth/login"]
+  });
+});
+
 app.get('/api/login', (req, res) => {
-  res.status(405).json({ 
-    message: "Use POST /api/login or POST /api/auth/login for authentication",
+  res.status(405).json({
+    message: "Method Not Allowed. Use POST /api/login or POST /api/auth/login for authentication",
+    method_used: req.method,
+    correct_method: "POST",
     available: ["POST /api/login", "POST /api/auth/login", "POST /api/auth/register"]
   });
 });
 
 app.get('/api/register', (req, res) => {
-  res.status(405).json({ 
-    message: "Use POST /api/auth/register for user registration",
+  res.status(405).json({
+    message: "Method Not Allowed. Use POST /api/auth/register for user registration",
+    method_used: req.method,
+    correct_method: "POST",
     available: ["POST /api/auth/register", "POST /api/auth/login"]
   });
 });
 
 app.get('/api/payment/create', (req, res) => {
-  res.status(405).json({ 
-    message: "Use POST /api/payment/create to create payment transaction",
+  res.status(405).json({
+    message: "Method Not Allowed. Use POST /api/payment/create to create payment transaction",
+    method_used: req.method,
+    correct_method: "POST",
     available: ["POST /api/payment/create"]
   });
 });
 
 app.get('/api/admin', (req, res) => {
-  res.status(405).json({ 
-    message: "Use POST /api/admin/login or POST /api/admin/register for admin operations",
+  res.status(405).json({
+    message: "Method Not Allowed. Use POST /api/admin/login or POST /api/admin/register for admin operations",
+    method_used: req.method,
+    correct_method: "POST",
     available: [
-      "POST /api/admin/login", 
-      "POST /api/admin/register", 
+      "POST /api/admin/login",
+      "POST /api/admin/register",
       "GET /api/admin/profile (requires auth)",
       "GET /api/admin/users (requires auth)"
     ]
+  });
+});
+
+// Add specific method not allowed for other admin routes
+app.get('/api/admin/login', (req, res) => {
+  res.status(405).json({
+    message: "Method Not Allowed. Use POST /api/admin/login for admin authentication",
+    method_used: req.method,
+    correct_method: "POST",
+    available: ["POST /api/admin/login", "POST /api/admin/register"]
+  });
+});
+
+app.get('/api/admin/register', (req, res) => {
+  res.status(405).json({
+    message: "Method Not Allowed. Use POST /api/admin/register for admin registration",
+    method_used: req.method,
+    correct_method: "POST",
+    available: ["POST /api/admin/login", "POST /api/admin/register"]
   });
 });
 
