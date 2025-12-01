@@ -81,6 +81,73 @@ app.get("/", (req, res) => {
   });
 });
 
+// Direct API routes for compatibility (in case frontend calls /api/login instead of /api/auth/login)
+// This addresses the route mismatch issue
+app.post("/api/login", async (req, res) => {
+  // Import User model and JWT functionality for direct auth
+  const { email, password } = req.body;
+  
+  // Validate inputs
+  if (!email || !password) {
+    return res.status(400).json({ 
+      message: "Email and password are required",
+      success: false 
+    });
+  }
+  
+  try {
+    // Import User model
+    const { default: User } = await import('./models/user.js');
+    const user = await User.findOne({ email: email.toLowerCase() });
+    
+    if (!user) {
+      return res.status(401).json({ 
+        message: "Invalid credentials", 
+        success: false 
+      });
+    }
+    
+    // Compare password using bcrypt
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ 
+        message: "Invalid credentials", 
+        success: false 
+      });
+    }
+    
+    // Create JWT token
+    const jwt = await import('jsonwebtoken');
+    const token = jwt.default.sign(
+      { uid: user._id, role: user.role }, 
+      process.env.JWT_SECRET, 
+      { 
+        expiresIn: process.env.JWT_EXPIRES || "7d",
+        issuer: 'glamour-backend',
+        audience: 'glamour-users'
+      }
+    );
+    
+    // Send successful response
+    res.json({
+      success: true,
+      token,
+      user: { 
+        id: user._id, 
+        name: user.name, 
+        email: user.email, 
+        role: user.role 
+      }
+    });
+  } catch (err) {
+    console.error('Direct login error:', err);
+    res.status(500).json({ 
+      message: "Internal Server Error", 
+      success: false 
+    });
+  }
+});
+
 // Routes with proper API structure
 app.use("/api/auth", authRoutes);
 app.use("/api/bookings", bookingRoutes);
@@ -105,6 +172,13 @@ app.get('/api/auth/login', (req, res) => {
   res.status(405).json({ 
     message: "Use POST /api/auth/login for authentication",
     available: ["POST /api/auth/login", "POST /api/auth/register"]
+  });
+});
+
+app.get('/api/login', (req, res) => {
+  res.status(405).json({ 
+    message: "Use POST /api/login or POST /api/auth/login for authentication",
+    available: ["POST /api/login", "POST /api/auth/login", "POST /api/auth/register"]
   });
 });
 
@@ -142,11 +216,12 @@ app.use((req, res) => {
     availableRoutes: [
       "GET /",
       "GET /api/health", 
-      "GET /api/auth/register", 
-      "GET /api/auth/login", 
-      "GET /api/payment/create",
-      "GET /api/admin/login",
-      "GET /api/admin/register"
+      "POST /api/auth/register", 
+      "POST /api/auth/login", 
+      "POST /api/login (compatibility)",
+      "POST /api/payment/create",
+      "POST /api/admin/login",
+      "POST /api/admin/register"
     ]
   });
 });
