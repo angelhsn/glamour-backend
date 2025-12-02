@@ -16,47 +16,19 @@ import adminRoutes from "./routes/admin.js";
 
 const app = express();
 
-// CORS Configuration - Updated to include all necessary origins and handle production environment
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+// CORS Configuration - Simplified for deployment
+app.use(cors({
+  origin: [
+    "https://glamour-frontend-azure.vercel.app",
+    "http://localhost:5173"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+}));
 
-    const allowedOrigins = [
-      "http://localhost:5173", // Vite development server
-      "http://localhost:3000", // Common React development server
-      "http://localhost:8080",
-      "https://glamour-backend-production.up.railway.app", // Production frontend (legacy)
-      "https://glamour-frontend-azure.vercel.app", // Current production frontend
-      "https://glamour-backend-production.up.railway.app",  // Production backend
-      process.env.FRONTEND_URL, // Environment variable for frontend
-    ].filter(Boolean); // Remove any undefined values
-
-    const isAllowed = allowedOrigins.includes(origin) ||
-                     origin?.includes('localhost') ||
-                     origin?.includes('railway.app') ||
-                     origin?.includes('vercel.app');
-
-    callback(null, isAllowed);
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "X-Requested-With", "X-HTTP-Method-Override"],
-  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
-};
-
-app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Handle preflight requests for all routes
-app.options('*', (req, res) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin);
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, X-HTTP-Method-Override');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.sendStatus(200);
-});
 
 // MongoDB Connection
 const connectDB = async () => {
@@ -64,13 +36,7 @@ const connectDB = async () => {
     const mongoURI = process.env.MONGODB_URI
       || "mongodb+srv://firdausiangel7_db_user:Glamour2025db@cluster0.hnaosra.mongodb.net/glamour?retryWrites=true&w=majority";
 
-    await mongoose.connect(mongoURI, {
-      serverSelectionTimeoutMS: 30000, // Increased timeout for production
-      maxPoolSize: 10, // Maintain up to 10 socket connections
-      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-      bufferCommands: false, // Disable mongoose buffering
-      bufferMaxEntries: 0, // Disable mongoose buffering
-    });
+    await mongoose.connect(mongoURI);
 
     console.log("✅ MongoDB connected successfully");
   } catch (error) {
@@ -270,19 +236,8 @@ app.get('/api/admin/register', (req, res) => {
 
 // 404 handler - Return JSON instead of HTML
 app.use((req, res) => {
-  res.status(404).json({ 
-    message: `Route ${req.originalUrl} not found`,
-    method: req.method,
-    availableRoutes: [
-      "GET /",
-      "GET /api/health", 
-      "POST /api/auth/register", 
-      "POST /api/auth/login", 
-      "POST /api/login (compatibility)",
-      "POST /api/payment/create",
-      "POST /api/admin/login",
-      "POST /api/admin/register"
-    ]
+  res.status(404).json({
+    error: `Route ${req.method} ${req.path} not found`
   });
 });
 
