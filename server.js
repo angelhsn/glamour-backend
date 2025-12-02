@@ -132,19 +132,6 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/admin", adminRoutes);
 
-// Explicitly handle any missing auth routes to prevent 404s
-app.all('/api/auth/*', (req, res) => {
-  res.status(404).json({
-    message: `Route ${req.originalUrl} not found`,
-    method: req.method,
-    available_auth_routes: [
-      "POST /api/auth/login",
-      "POST /api/auth/register",
-      "GET /api/auth/me (requires auth)"
-    ]
-  });
-});
-
 // Health check route
 app.get("/api/health", (req, res) => {
   res.json({ 
